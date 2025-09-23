@@ -6,7 +6,6 @@ const app = express();
 
 app.use(json());
 
-// registrar rotas de módulos
 app.use("/users", userRoutes);
 
 export default app;
