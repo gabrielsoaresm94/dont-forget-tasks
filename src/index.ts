@@ -8,7 +8,7 @@ class Application {
   private readonly port: number;
 
   constructor() {
-    const useFake = process.env.USE_FAKE_RABBIT === "true";
+    const useFake = process.env.USE_RABBIT === "false";
     this.rabbitProvider = RabbitMQProviderFactory.create(useFake);
     this.port = env.port;
   }
@@ -20,7 +20,7 @@ class Application {
 
     // Se estiver usando Fake e quiser seed manual
     if (
-      process.env.USE_FAKE_RABBIT === "true" &&
+      process.env.USE_RABBIT === "false" &&
       process.env.SEED_FAKE_MESSAGES === "true" &&
       typeof (this.rabbitProvider as any).seedMessage === "function"
     ) {
