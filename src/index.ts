@@ -1,6 +1,6 @@
 import app from "./app";
 import { env } from "./config/env";
-import { UserConsumer } from "./consumers/UserConsumer";
+import { TaskConsumer } from "./consumers/TaskConsumer";
 import { RabbitMQProviderFactory } from "./providers/rabbitmq/RabbitMQProviderFactory";
 
 class Application {
@@ -15,7 +15,7 @@ class Application {
 
   private async initRabbit() {
     await this.rabbitProvider.init();
-    await UserConsumer.init(this.rabbitProvider);
+    await TaskConsumer.init(this.rabbitProvider);
     console.log("📡 RabbitMQ conectado e consumers iniciados.");
 
     // Se estiver usando Fake e quiser seed manual
@@ -25,10 +25,11 @@ class Application {
       typeof (this.rabbitProvider as any).seedMessage === "function"
     ) {
       console.log("💡 Enviando mensagem fake inicial...");
-      await (this.rabbitProvider as any).seedMessage("user_queue", {
+      await (this.rabbitProvider as any).seedMessage("task_queue", {
         id: 1,
-        name: "Teste Fake",
-        email: "teste@fake.com",
+        task: "Não esqueça de criar a primeira task!",
+        userId: "db89a526-fab3-48cf-9771-1b993e9578c9",
+        timestamp: 1758678484365
       });
     }
   }

@@ -1,11 +1,11 @@
 import express from "express";
 import { json } from "body-parser";
-import userRoutes from "./routes";
+import tasksRoutes from "./routes";
 
 const app = express();
 
 app.use(json());
 
-app.use("/users", userRoutes);
+app.use("/tasks/v1", tasksRoutes);
 
 export default app;

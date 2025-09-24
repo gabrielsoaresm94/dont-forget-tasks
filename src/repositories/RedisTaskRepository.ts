@@ -1,7 +1,7 @@
 import { createClient, RedisClientType } from "redis";
-import { IUserRepository } from "./IUserRepository";
+import { ITaskRepository } from "./ITaskRepository";
 
-export class RedisUserRepository implements IUserRepository {
+export class RedisTaskRepository implements ITaskRepository {
   private client: RedisClientType;
 
   constructor() {
@@ -21,20 +21,20 @@ export class RedisUserRepository implements IUserRepository {
     }
   }
 
-  async save(user: any): Promise<void> {
+  async save(task: any): Promise<void> {
     await this.connect();
-    await this.client.hSet("users", user.id, JSON.stringify(user));
+    await this.client.hSet("tasks", task.id, JSON.stringify(task));
   }
 
   async findById(id: string): Promise<any | null> {
     await this.connect();
-    const user = await this.client.hGet("users", id);
-    return user ? JSON.parse(user) : null;
+    const task = await this.client.hGet("tasks", id);
+    return task ? JSON.parse(task) : null;
   }
 
   async findAll(): Promise<any[]> {
     await this.connect();
-    const users = await this.client.hGetAll("users");
-    return Object.values(users).map((u) => JSON.parse(u));
+    const tasks = await this.client.hGetAll("tasks");
+    return Object.values(tasks).map((u) => JSON.parse(u));
   }
 }
