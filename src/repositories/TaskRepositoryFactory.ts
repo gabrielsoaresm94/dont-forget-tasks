@@ -2,16 +2,26 @@ import { ITaskRepository } from "./ITaskRepository";
 import { InMemoryTaskRepository } from "./InMemoryTaskRepository";
 import { RedisTaskRepository } from "./RedisTaskRepository";
 
+let inMemoryInstance: InMemoryTaskRepository | null = null;
+let redisInstance: RedisTaskRepository | null = null;
+
 export class TaskRepositoryFactory {
   static create(): ITaskRepository {
     const useRedis = process.env.USE_REDIS === "true";
 
     if (useRedis) {
-      console.log("📦 Usando RedisTaskRepository");
-      return new RedisTaskRepository();
+      if (!redisInstance) {
+        console.log("📦 Usando RedisTaskRepository");
+        redisInstance = new RedisTaskRepository();
+      }
+      return redisInstance;
     }
 
-    console.log("📝 Usando InMemoryTaskRepository");
-    return new InMemoryTaskRepository();
+    if (!inMemoryInstance) {
+      console.log("📝 Usando InMemoryTaskRepository");
+      inMemoryInstance = new InMemoryTaskRepository();
+    }
+
+    return inMemoryInstance;
   }
 }
