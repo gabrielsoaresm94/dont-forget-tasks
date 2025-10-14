@@ -4,7 +4,7 @@ import { ITaskRepository } from "../repositories/ITaskRepository";
 interface TaskRequest {
   description: string;
   userId: string;
-  timestamp: number;
+  createdAt: string;
 }
 
 export class TaskService {
@@ -14,7 +14,7 @@ export class TaskService {
     const task = new Task(
       data.description,
       data.userId,
-      new Date(data.timestamp)
+      data.createdAt
     );
 
     return await this.repository.save(task);
@@ -28,7 +28,7 @@ export class TaskService {
     await this.repository.delete(userId, taskId);
   }
 
-  async getTask(taskId: number): Promise<Task | null> {
-    return this.repository.findById(taskId);
+  async getTask(taskId: number, userId: string): Promise<Task | null> {
+    return this.repository.findById(taskId, userId);
   }
 }

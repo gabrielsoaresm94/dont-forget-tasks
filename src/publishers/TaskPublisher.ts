@@ -1,17 +1,27 @@
 import { IRabbitMQProvider } from "../providers/rabbitmq/IRabbitMQProvider";
 
-interface ITaskPublisher {
-  taskCreated(task: any): Promise<void>;
+export interface EventBase<T = unknown> {
+  type: "task.error";
+  correlationId: string;
+  userId: string;
+  data?: T;
+  error?: { code: string; message: string };
+  occurredAt: string;
 }
 
-export class TaskPublisher implements ITaskPublisher {
-  private messaging: IRabbitMQProvider;
+const EVENT_ROUTES = {
+  error: "task.error",
+} as const;
 
-  constructor(messaging: IRabbitMQProvider) {
-    this.messaging = messaging;
-  }
+export class TaskPublisher {
+  constructor(private readonly messaging: IRabbitMQProvider) {}
 
-  async taskCreated(task: any) {
-    await this.messaging.publish("task_created", task);
+  async taskError(evt: EventBase): Promise<void> {
+    try {
+      await this.messaging.publish(EVENT_ROUTES.error, evt);
+      console.log(`[TaskPublisher] Evento de erro publicado: ${evt.correlationId}`);
+    } catch (err) {
+      console.error(`[TaskPublisher] Falha ao publicar erro: ${evt.correlationId}`, err);
+    }
   }
 }

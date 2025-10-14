@@ -3,100 +3,84 @@ import { ITaskRepository } from "./ITaskRepository";
 import { Task } from "../models/Task";
 
 export class RedisTaskRepository implements ITaskRepository {
+  private static client: RedisClientType | null = null;
   private client: RedisClientType;
 
   constructor() {
-    this.client = createClient({
-      url: process.env.REDIS_URL || "redis://localhost:6379"
-    });
+    if (!RedisTaskRepository.client) {
+      RedisTaskRepository.client = createClient({
+        url: process.env.REDIS_URL || "redis://localhost:6379",
+      });
 
-    this.client.on("error", (err: any) => {
-      console.error("❌ Erro no Redis:", err);
-    });
+      RedisTaskRepository.client.on("error", (err: any) => {
+        console.error("❌ Erro no Redis:", err);
+      });
+    }
+    this.client = RedisTaskRepository.client!;
   }
 
-  async connect() {
+  private async connect() {
     if (!this.client.isOpen) {
       await this.client.connect();
       console.log("📦 Redis conectado com sucesso!");
     }
   }
 
-  private counterKey() {
-    return `tasks:counter`;
+  private counterKey(userId: string) {
+    return `tasks:${userId}:counter`;
   }
 
-  private sortedSetKey(userId: string) {
-    return `tasks:${userId}:zset`;
+  private userTasksKey(userId: string) {
+    return `tasks:${userId}`;
   }
 
-  private hashKey(taskId: number) {
-    return `task:${taskId}`;
+  private taskKey(userId: string, taskId: number) {
+    return `task:${userId}:${taskId}`;
   }
 
   async save(task: Task): Promise<Task> {
     await this.connect();
-
-    const id = await this.client.incr(this.counterKey());
+    const id = await this.client.incr(this.counterKey(task.userId));
     task.id = id;
-
-    await this.client.hSet(this.hashKey(id), {
-      description: task.description,
-      userId: task.userId,
-      dateTime: task.dateTime.getTime().toString()
+    await this.client.hSet(this.taskKey(task.userId, id), {
+      Id: id.toString(),
+      UserId: task.userId,
+      Description: task.description,
+      CreatedAt: task.createdAt,
     });
-
-    await this.client.zAdd(this.sortedSetKey(task.userId), [
-      { score: task.dateTime.getTime(), value: id.toString() }
-    ]);
-
+    await this.client.rPush(this.userTasksKey(task.userId), id.toString());
     return task;
   }
 
-  async findAll(userId: string, from?: number, to?: number): Promise<Task[]> {
+  async findAll(userId: string): Promise<Task[]> {
     await this.connect();
-
-    const min = from !== undefined ? from : "-inf";
-    const max = to !== undefined ? to : "+inf";
-
-    const idStrings = await this.client.zRangeByScore(this.sortedSetKey(userId), min as any, max as any);
+    const ids = await this.client.lRange(this.userTasksKey(userId), 0, -1);
     const tasks: Task[] = [];
-
-    for (const idStr of idStrings) {
+    for (const idStr of ids) {
       const id = parseInt(idStr, 10);
-      const data = await this.client.hGetAll(this.hashKey(id));
+      const data = await this.client.hGetAll(this.taskKey(userId, id));
       if (!data || Object.keys(data).length === 0) continue;
-
-      const t = new Task(
-        data.description,
-        data.userId,
-        new Date(parseInt(data.dateTime || "0", 10))
-      );
+      const t = new Task(data.Description, data.UserId, data.CreatedAt);
       t.id = id;
       tasks.push(t);
     }
-
     return tasks;
   }
 
   async delete(userId: string, taskId: number): Promise<void> {
     await this.connect();
-    await this.client.del(this.hashKey(taskId));
-    await this.client.zRem(this.sortedSetKey(userId), taskId.toString());
+    await Promise.all([
+      this.client.del(this.taskKey(userId, taskId)),
+      this.client.lRem(this.userTasksKey(userId), 0, taskId.toString()),
+    ]);
   }
 
-  async findById(taskId: number): Promise<Task | null> {
+  async findById(taskId: number, userId: string): Promise<Task | null> {
     await this.connect();
-    const data = await this.client.hGetAll(this.hashKey(taskId));
+    const data = await this.client.hGetAll(this.taskKey(userId, taskId));
     if (Object.keys(data).length === 0) return null;
-
-    const t = new Task(
-      data.description,
-      data.userId,
-      new Date(parseInt(data.dateTime || "0", 10))
-    );
-    t.id = taskId;
-
-    return t;
+    const task = new Task(data.Description, data.UserId, data.CreatedAt);
+    task.id = taskId;
+    return task;
   }
 }

@@ -2,43 +2,35 @@ import { Task } from "../models/Task";
 import { ITaskRepository } from "./ITaskRepository";
 
 export class InMemoryTaskRepository implements ITaskRepository {
-  private globalCounter = 0;
-  private tasks: { [taskId: number]: Task } = {};
-  private userTasks: { [userId: string]: number[] } = {};
+  private tasks: Record<string, Task[]> = {};
+  private counters: Record<string, number> = {};
 
   async save(task: Task): Promise<Task> {
-    const id = ++this.globalCounter;
-    task.id = id;
-    this.tasks[id] = task;
-
-    if (!this.userTasks[task.userId]) this.userTasks[task.userId] = [];
-
-    const arr = this.userTasks[task.userId];
-    const idx = arr.findIndex((taskId) => this.tasks[taskId].dateTime.getTime() > task.dateTime.getTime());
-    if (idx === -1) arr.push(id);
-    else arr.splice(idx, 0, id);
-
+    if (!this.counters[task.userId]) {
+      this.counters[task.userId] = 0;
+    }
+    const newId = ++this.counters[task.userId];
+    task.id = newId;
+    if (!this.tasks[task.userId]) {
+      this.tasks[task.userId] = [];
+    }
+    this.tasks[task.userId].push(task);
     return task;
   }
 
-  async findAll(userId: string, from?: number, to?: number): Promise<Task[]> {
-    const taskIds = this.userTasks[userId] || [];
-    let items = taskIds.map((id) => this.tasks[id]);
-
-    if (from !== undefined) items = items.filter((t) => t.dateTime.getTime() >= from);
-    if (to !== undefined) items = items.filter((t) => t.dateTime.getTime() <= to);
-
-    return items;
+  async findAll(userId: string): Promise<Task[]> {
+    return this.tasks[userId] || [];
   }
 
   async delete(userId: string, taskId: number): Promise<void> {
-    delete this.tasks[taskId];
-    if (this.userTasks[userId]) {
-      this.userTasks[userId] = this.userTasks[userId].filter((id) => id !== taskId);
-    }
+    const userTasks = this.tasks[userId];
+    if (!userTasks) return;
+    this.tasks[userId] = userTasks.filter(t => t.id !== taskId);
   }
 
-  async findById(taskId: number): Promise<Task | null> {
-    return this.tasks[taskId] || null;
+  async findById(taskId: number, userId: string): Promise<Task | null> {
+    const userTasks = this.tasks[userId];
+    if (!userTasks) return null;
+    return userTasks.find(t => t.id === taskId) || null;
   }
 }
