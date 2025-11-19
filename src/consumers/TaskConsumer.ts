@@ -5,7 +5,7 @@ import { TaskRepositoryFactory } from "../repositories/TaskRepositoryFactory";
 
 interface CreatePayload {
   description: string;
-  createdAt: string; // ISO timestamp
+  expiredAt: string; // ISO timestamp
 }
 
 interface DeletePayload {
@@ -43,13 +43,13 @@ export class TaskConsumer {
         switch (type) {
           case "task.create": {
             const payload = data as CreatePayload;
-            if (!payload.description || !payload.createdAt) {
+            if (!payload.description || !payload.expiredAt) {
               throw new Error("Payload inválido para task.create");
             }
             await service.createTask({
               description: payload.description,
               userId,
-              createdAt: payload.createdAt,
+              expiredAt: payload.expiredAt,
             });
             console.log(`[TaskConsumer] Tarefa criada com sucesso (user=${userId})`);
             break;

@@ -46,7 +46,7 @@ export class RedisTaskRepository implements ITaskRepository {
       Id: id.toString(),
       UserId: task.userId,
       Description: task.description,
-      CreatedAt: task.createdAt,
+      ExpiredAt: task.expiredAt,
     });
     await this.client.rPush(this.userTasksKey(task.userId), id.toString());
     return task;
@@ -60,7 +60,7 @@ export class RedisTaskRepository implements ITaskRepository {
       const id = parseInt(idStr, 10);
       const data = await this.client.hGetAll(this.taskKey(userId, id));
       if (!data || Object.keys(data).length === 0) continue;
-      const t = new Task(data.Description, data.UserId, data.CreatedAt);
+      const t = new Task(data.Description, data.UserId, data.ExpiredAt);
       t.id = id;
       tasks.push(t);
     }
@@ -79,7 +79,7 @@ export class RedisTaskRepository implements ITaskRepository {
     await this.connect();
     const data = await this.client.hGetAll(this.taskKey(userId, taskId));
     if (Object.keys(data).length === 0) return null;
-    const task = new Task(data.Description, data.UserId, data.CreatedAt);
+    const task = new Task(data.Description, data.UserId, data.ExpiredAt);
     task.id = taskId;
     return task;
   }

@@ -4,7 +4,7 @@ import { ITaskRepository } from "../repositories/ITaskRepository";
 interface TaskRequest {
   description: string;
   userId: string;
-  createdAt: string;
+  expiredAt: string;
 }
 
 export class TaskService {
@@ -14,7 +14,7 @@ export class TaskService {
     const task = new Task(
       data.description,
       data.userId,
-      data.createdAt
+      data.expiredAt
     );
 
     return await this.repository.save(task);

@@ -4,6 +4,6 @@ export class Task {
   constructor(
     public description: string,
     public userId: string,
-    public createdAt: string  // ISO
+    public expiredAt: string  // ISO
   ) {}
 }
