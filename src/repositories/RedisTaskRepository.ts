@@ -38,6 +38,10 @@ export class RedisTaskRepository implements ITaskRepository {
     return `task:${userId}:${taskId}`;
   }
 
+  private categoryTasksKey(userId: string, categoryId: number) {
+    return `category:${userId}:${categoryId}:tasks`;
+  }
+
   async save(task: Task): Promise<Task> {
     await this.connect();
     const id = await this.client.incr(this.counterKey(task.userId));
@@ -47,40 +51,70 @@ export class RedisTaskRepository implements ITaskRepository {
       UserId: task.userId,
       Description: task.description,
       ExpiredAt: task.expiredAt,
+      CategoryId: task.categoryId.toString(),
     });
     await this.client.rPush(this.userTasksKey(task.userId), id.toString());
+    await this.client.rPush(
+      this.categoryTasksKey(task.userId, task.categoryId),
+      id.toString()
+    );
     return task;
   }
 
-  async findAll(userId: string): Promise<Task[]> {
+  async findAll(userId: string, categoryId?: number): Promise<Task[]> {
     await this.connect();
-    const ids = await this.client.lRange(this.userTasksKey(userId), 0, -1);
+    let ids: string[];
+    if (categoryId !== undefined) {
+      ids = await this.client.lRange(
+        this.categoryTasksKey(userId, categoryId),
+        0, -1
+      );
+    } else {
+      ids = await this.client.lRange(this.userTasksKey(userId), 0, -1);
+    }
     const tasks: Task[] = [];
     for (const idStr of ids) {
       const id = parseInt(idStr, 10);
       const data = await this.client.hGetAll(this.taskKey(userId, id));
       if (!data || Object.keys(data).length === 0) continue;
-      const t = new Task(data.Description, data.UserId, data.ExpiredAt);
-      t.id = id;
-      tasks.push(t);
+      tasks.push(
+        new Task(
+          data.Description,
+          data.UserId,
+          data.ExpiredAt,
+          parseInt(data.CategoryId, 10),
+          id
+        )
+      );
     }
     return tasks;
-  }
-
-  async delete(userId: string, taskId: number): Promise<void> {
-    await this.connect();
-    await Promise.all([
-      this.client.del(this.taskKey(userId, taskId)),
-      this.client.lRem(this.userTasksKey(userId), 0, taskId.toString()),
-    ]);
   }
 
   async findById(taskId: number, userId: string): Promise<Task | null> {
     await this.connect();
     const data = await this.client.hGetAll(this.taskKey(userId, taskId));
     if (Object.keys(data).length === 0) return null;
-    const task = new Task(data.Description, data.UserId, data.ExpiredAt);
-    task.id = taskId;
-    return task;
+    return new Task(
+      data.Description,
+      data.UserId,
+      data.ExpiredAt,
+      parseInt(data.CategoryId, 10),
+      taskId
+    );
+  }
+
+  async delete(userId: string, taskId: number): Promise<void> {
+    await this.connect();
+    const data = await this.client.hGetAll(this.taskKey(userId, taskId));
+    if (!data || !data.CategoryId) return;
+    const categoryId = parseInt(data.CategoryId, 10);
+    await Promise.all([
+      this.client.del(this.taskKey(userId, taskId)),
+      this.client.lRem(this.userTasksKey(userId), 0, taskId.toString()),
+      this.client.lRem(
+        this.categoryTasksKey(userId, categoryId),
+        0, taskId.toString()
+      ),
+    ]);
   }
 }

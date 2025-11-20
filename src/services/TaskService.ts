@@ -1,34 +1,52 @@
-import { Task } from "../models/Task";
 import { ITaskRepository } from "../repositories/ITaskRepository";
-
-interface TaskRequest {
-  description: string;
-  userId: string;
-  expiredAt: string;
-}
+import { ICategoryRepository } from "../repositories/ICategoryRepository";
+import { Task } from "../models/Task";
 
 export class TaskService {
-  constructor(private readonly repository: ITaskRepository) {}
+  constructor(
+    private readonly taskRepository: ITaskRepository,
+    private readonly categoryRepository: ICategoryRepository
+  ) {}
 
-  async createTask(data: TaskRequest): Promise<Task> {
+  async createTask(data: {
+    description: string;
+    userId: string;
+    expiredAt: string;
+    categoryId: number;
+  }): Promise<Task> {
+    const category = await this.categoryRepository.findById(data.userId, data.categoryId);
+    if (!category) throw new Error("Categoria inexistente.");
     const task = new Task(
       data.description,
       data.userId,
-      data.expiredAt
+      data.expiredAt,
+      data.categoryId
     );
-
-    return await this.repository.save(task);
+    return await this.taskRepository.save(task);
   }
 
-  async listTasks(userId: string, from?: number, to?: number): Promise<Task[]> {
-    return this.repository.findAll(userId, from, to);
+  async listTasks(userId: string, categoryId?: number) {
+    const tasks = await this.taskRepository.findAll(userId, categoryId);
+    if (categoryId) {
+      return {
+        categoryId,
+        tasks
+      };
+    }
+    const grouped: Record<string, Task[]> = {};
+    for (const t of tasks) {
+      if (!grouped[t.categoryId]) grouped[t.categoryId] = [];
+      grouped[t.categoryId].push(t);
+    }
+
+    return grouped;
   }
 
   async deleteTask(userId: string, taskId: number): Promise<void> {
-    await this.repository.delete(userId, taskId);
+    await this.taskRepository.delete(userId, taskId);
   }
 
   async getTask(taskId: number, userId: string): Promise<Task | null> {
-    return this.repository.findById(taskId, userId);
+    return this.taskRepository.findById(taskId, userId);
   }
 }

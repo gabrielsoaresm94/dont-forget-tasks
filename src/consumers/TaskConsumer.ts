@@ -2,10 +2,12 @@ import { IMessengerProvider } from "../providers/messenger/IMessengerProvider";
 import { TaskService } from "../services/TaskService";
 import { TaskPublisher } from "../publishers/TaskPublisher";
 import { TaskRepositoryFactory } from "../repositories/TaskRepositoryFactory";
+import { CategoryRepositoryFactory } from "../repositories/CategoryRepositoryFactory";
 
 interface CreatePayload {
   description: string;
   expiredAt: string; // ISO timestamp
+  categoryId: number;
 }
 
 interface DeletePayload {
@@ -16,8 +18,9 @@ export class TaskConsumer {
   static async init(messenger: IMessengerProvider): Promise<void> {
     const queueName = "task_queue";
 
-    const repository = TaskRepositoryFactory.create();
-    const service = new TaskService(repository);
+    const taskRepository = TaskRepositoryFactory.create();
+    const categoryRepository = CategoryRepositoryFactory.create();
+    const service = new TaskService(taskRepository, categoryRepository);
     const publisher = new TaskPublisher(messenger);
 
     await messenger.consume(queueName, async (envelope: any) => {
@@ -50,6 +53,7 @@ export class TaskConsumer {
               description: payload.description,
               userId,
               expiredAt: payload.expiredAt,
+              categoryId: payload.categoryId
             });
             console.log(`[TaskConsumer] Tarefa criada com sucesso (user=${userId})`);
             break;

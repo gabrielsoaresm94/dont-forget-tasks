@@ -18,8 +18,10 @@ export class InMemoryTaskRepository implements ITaskRepository {
     return task;
   }
 
-  async findAll(userId: string): Promise<Task[]> {
-    return this.tasks[userId] || [];
+  async findAll(userId: string, categoryId?: number): Promise<Task[]> {
+    const list = this.tasks[userId] || [];
+    if (!categoryId) return list;
+    return list.filter(t => t.categoryId === categoryId);
   }
 
   async delete(userId: string, taskId: number): Promise<void> {
