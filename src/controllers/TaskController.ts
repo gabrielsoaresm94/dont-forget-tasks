@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { TaskService } from "../services/TaskService";
 import { TaskRepositoryFactory } from "../repositories/TaskRepositoryFactory";
 import { CategoryRepositoryFactory } from "../repositories/CategoryRepositoryFactory";
+import { createSender } from "../utils/Response";
 
 export class TaskController {
   private service: TaskService;
@@ -14,70 +15,52 @@ export class TaskController {
   health = (res: Response) => res.status(200).json(true);
 
   listTasks = async (req: Request, res: Response) => {
+    const send = createSender(res);
     try {
       const categoryId = req.query!!.categoryId && 
         typeof req.query.categoryId == 'string' ? parseInt(req.query.categoryId) : undefined;
       const userId = req.query.userId as string;
       if (!userId) {
-        return res.status(400).json({
-          _Meta: {
-            Message: "Campo para consulta é obrigatório"
-          }
-        });
+        return send.badRequest({}, { Message: "Campo para consulta é obrigatório" });
       }
       const tasks = await this.service.listTasks(userId, categoryId);
-      return res.status(200).json({
-        Data: tasks,
-        _Meta: {
+      return send.response(
+        tasks,
+        {
           Type: "task.listed",
           UserId: userId,
           OccurredAt: new Date().toISOString(),
         }
-      });
+      );
     } catch (error: any) {
       console.error(error);
-      return res.status(500).json({
-        _Meta: {
-          Error: error.message
-        }
-      });
+      return send.serverError({}, { Error: error.message });
     }
   };
 
   getTask = async (req: Request, res: Response) => {
+    const send = createSender(res);
     try {
       const userId = req.query.userId as string;
       const taskId = req.query.taskId as string;
       if (!taskId || !userId) {
-        return res.status(400).json({
-          _Meta: {
-            Message: "Todos os campos são obrigatórios"
-          }
-        });
+        return send.badRequest({}, { Message: "Todos os campos são obrigatórios" });
       }
       const task = await this.service.getTask(parseInt(taskId), userId);
       if (!task) {
-        return res.status(404).json({
-          _Meta: {
-            Message: "Task não encontrada"
-          }
-        });
+        return send.notFound({}, { Message: "Task não encontrada" });
       }
-      return res.status(200).json({
-        Data: task,
-        _Meta: {
+      return send.response(
+        task,
+        {
           Type: "task.get",
           UserId: userId,
           OccurredAt: new Date().toISOString(),
         }
-      });
+      );
     } catch (error: any) {
       console.error(error);
-      return res.status(500).json({
-        _Meta: {
-          Error: error.message
-        }
-      });
+      return send.serverError({}, { Error: error.message });
     }
   };
 }
