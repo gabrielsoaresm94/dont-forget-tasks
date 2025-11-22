@@ -11,7 +11,7 @@ export class TaskController {
     this.service = new TaskService(taskRepository, categoryRepository);
   }
 
-  health = (req: Request, res: Response) => res.status(200).json(true);
+  health = (res: Response) => res.status(200).json(true);
 
   listTasks = async (req: Request, res: Response) => {
     try {
@@ -19,18 +19,28 @@ export class TaskController {
         typeof req.query.categoryId == 'string' ? parseInt(req.query.categoryId) : undefined;
       const userId = req.query.userId as string;
       if (!userId) {
-        return res.status(400).json({ error: "Campo para consulta é obrigatório" });
+        return res.status(400).json({
+          _Meta: {
+            Message: "Campo para consulta é obrigatório"
+          }
+        });
       }
       const tasks = await this.service.listTasks(userId, categoryId);
       return res.status(200).json({
-        Type: "task.listed",
-        UserId: userId,
-        OccurredAt: new Date().toISOString(),
-        Data: tasks
+        Data: tasks,
+        _Meta: {
+          Type: "task.listed",
+          UserId: userId,
+          OccurredAt: new Date().toISOString(),
+        }
       });
     } catch (error: any) {
       console.error(error);
-      return res.status(500).json({ error: error.message });
+      return res.status(500).json({
+        _Meta: {
+          Error: error.message
+        }
+      });
     }
   };
 
@@ -39,21 +49,35 @@ export class TaskController {
       const userId = req.query.userId as string;
       const taskId = req.query.taskId as string;
       if (!taskId || !userId) {
-        return res.status(400).json({ error: "Todos os campos são obrigatórios" });
+        return res.status(400).json({
+          _Meta: {
+            Message: "Todos os campos são obrigatórios"
+          }
+        });
       }
       const task = await this.service.getTask(parseInt(taskId), userId);
       if (!task) {
-        return res.status(404).json({ error: "Task não encontrada" });
+        return res.status(404).json({
+          _Meta: {
+            Message: "Task não encontrada"
+          }
+        });
       }
       return res.status(200).json({
-        Type: "task.get",
-        UserId: userId,
-        OccurredAt: new Date().toISOString(),
-        Data: task
+        Data: task,
+        _Meta: {
+          Type: "task.get",
+          UserId: userId,
+          OccurredAt: new Date().toISOString(),
+        }
       });
     } catch (error: any) {
       console.error(error);
-      return res.status(500).json({ error: error.message });
+      return res.status(500).json({
+        _Meta: {
+          Error: error.message
+        }
+      });
     }
   };
 }

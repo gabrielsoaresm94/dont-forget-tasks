@@ -17,18 +17,28 @@ export class CategoryController {
     try {
       const userId = req.query.userId as string;
       if (!userId) {
-          return res.status(400).json({ error: "Todos os campos são obrigatórios" });
+        return res.status(400).json({
+          _Meta: {
+            Message: "Todos os campos são obrigatórios"
+          }
+        });
       }
       const tasks = await this.service.listCategories(userId);
       return res.status(200).json({
-        Type: "category.listed",
-        UserId: userId,
-        OccurredAt: new Date().toISOString(),
-        Data: tasks
+        Data: tasks,
+        _Meta: {
+          Type: "category.listed",
+          UserId: userId,
+          OccurredAt: new Date().toISOString()
+        }
       });
     } catch (error: any) {
       console.error(error);
-      return res.status(500).json({ error: error.message });
+      return res.status(500).json({
+        _Meta: {
+          Error: error.message
+        }
+      });
     }
   };
 
@@ -37,21 +47,35 @@ export class CategoryController {
       const userId = req.query.userId as string;
       const categoryId = req.query.CategoryId as string;
       if (!categoryId || !userId) {
-        return res.status(400).json({ error: "Todos os campos são obrigatórios" });
+        return res.status(400).json({
+          _Meta: {
+            Message: "Todos os campos são obrigatórios"
+          }
+        });
       }
       const category = await this.service.getCategory(userId, parseInt(categoryId, 10));
       if (!category) {
-        return res.status(404).json({ error: "Categoria não encontrada" });
+        return res.status(404).json({
+          _Meta: {
+            Message: "Categoria não encontrada"
+          }
+        });
       }
       return res.status(200).json({
-        Type: "category.get",
-        UserId: userId,
-        OccurredAt: new Date().toISOString(),
-        Data: category
+        Data: category,
+        _Meta: {
+          Type: "category.get",
+          UserId: userId,
+          OccurredAt: new Date().toISOString()
+        }
       });
     } catch (error: any) {
       console.error(error);
-      return res.status(500).json({ error: error.message });
+      return res.status(500).json({
+        _Meta: {
+          Error: error.message
+        }
+      });
     }
   };
 }
