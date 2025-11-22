@@ -1,7 +1,7 @@
 import express from "express";
 import { json } from "body-parser";
-import tasksRoutes from "./tasksRoutes";
-import categoriesRoutes from './categoriesRoutes';
+import tasksRoutes from "./TasksRoutes";
+import categoriesRoutes from './CategoriesRoutes';
 
 const app = express();
 

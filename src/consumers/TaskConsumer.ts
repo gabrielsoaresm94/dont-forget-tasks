@@ -4,14 +4,24 @@ import { TaskPublisher } from "../publishers/TaskPublisher";
 import { TaskRepositoryFactory } from "../repositories/TaskRepositoryFactory";
 import { CategoryRepositoryFactory } from "../repositories/CategoryRepositoryFactory";
 
-interface CreatePayload {
+interface Payload<T> {
+  Type: string;
+  Data: T;
+  CorrelationId: string;
+  OccurredAt: string;
+}
+
+interface CreateData {
   Description: string;
   ExpiredAt: string;
   CategoryId: number;
+  UserId: string;
+  DeviceToken: string;
 }
 
-interface DeletePayload {
-  TaskId: number | string;
+interface DeleteData {
+  TaskId: number;
+  UserId: string;
 }
 
 export class TaskConsumer {
@@ -25,47 +35,45 @@ export class TaskConsumer {
 
     await messenger.consume(queueName, async (envelope: any) => {
       try {
-        const cmd = envelope?.message;
+        const cmd = envelope?.message as Payload<CreateData | DeleteData>;
         if (!cmd) {
           console.warn("[TaskConsumer] Envelope sem mensagem:", envelope);
           return;
         }
 
-        const type = cmd.type;
-        const userId = cmd.userId;
-        const correlationId = cmd.correlationId ?? "unknown";
-        const data = cmd.data;
+        const type = cmd.Type;
+        const correlationId = cmd.CorrelationId ?? "unknown";
 
-        console.log(`[TaskConsumer] Recebido: ${type} (cid=${correlationId}, user=${userId})`);
-        console.log("[TaskConsumer] Payload:", data);
+        console.log(`[TaskConsumer] Recebido: ${type} (cid=${correlationId}`);
+        console.log("[TaskConsumer] Payload:", cmd.Data);
 
-        if (!type || !userId || !data) {
+        if (!type || !cmd.Data) {
           throw new Error("Comando inválido");
         }
 
         switch (type) {
           case "task.create": {
-            const payload = data as CreatePayload;
-            if (!payload.Description || !payload.ExpiredAt) {
+            const data = cmd.Data as CreateData;
+            if (!data.Description || !data.ExpiredAt) {
               throw new Error("Payload inválido para task.create");
             }
             await service.createTask({
-              description: payload.Description,
-              userId,
-              expiredAt: payload.ExpiredAt,
-              categoryId: payload.CategoryId
+              description: data.Description,
+              userId: data.UserId,
+              expiredAt: data.ExpiredAt,
+              categoryId: data.CategoryId
             });
-            console.log(`[TaskConsumer] Tarefa criada com sucesso (user=${userId})`);
+            console.log(`[TaskConsumer] Tarefa criada com sucesso (user=${data.UserId})`);
             break;
           }
 
           case "task.delete": {
-            const payload = data as DeletePayload;
-            if (!payload.TaskId) {
+            const data = cmd.Data as DeleteData;
+            if (!data.TaskId) {
               throw new Error("Payload inválido para task.delete");
             }
-            await service.deleteTask(userId, Number(payload.TaskId));
-            console.log(`[TaskConsumer] Tarefa ${payload.TaskId} removida (user=${userId})`);
+            await service.deleteTask(data.UserId, Number(data.TaskId));
+            console.log(`[TaskConsumer] Tarefa ${data.TaskId} removida (user=${data.UserId})`);
             break;
           }
 
@@ -78,14 +86,14 @@ export class TaskConsumer {
         console.error(`[TaskConsumer] Erro processando comando: ${message}`);
         try {
           await publisher.taskError({
-            type: "task.error",
-            correlationId: err?.correlationId ?? "unknown",
-            userId: err?.userId ?? "unknown",
-            error: { code: "TASK_ERROR", message },
-            occurredAt: new Date().toISOString(),
+            Type: "tasks.error",
+            CorrelationId: err?.correlationId ?? "unknown",
+            UserId: err?.userId ?? "unknown",
+            Error: { code: "TASK_ERROR", message },
+            OccurredAt: new Date().toISOString(),
           });
         } catch (pubErr) {
-          console.error("[TaskConsumer] Falha ao publicar evento de erro:", pubErr);
+          console.error("[TaskConsumer] Falha ao publicar evento de erro: ", pubErr);
         }
       }
     });

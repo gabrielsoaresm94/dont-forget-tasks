@@ -1,16 +1,16 @@
 import { IMessengerProvider } from "../providers/messenger/IMessengerProvider";
 
 export interface EventBase<T = unknown> {
-  type: "task.error";
-  correlationId: string;
-  userId: string;
-  data?: T;
-  error?: { code: string; message: string };
-  occurredAt: string;
+  Type: "tasks.error";
+  CorrelationId: string;
+  UserId: string;
+  Data?: T;
+  Error?: { code: string; message: string };
+  OccurredAt: string;
 }
 
 const EVENT_ROUTES = {
-  error: "task.error",
+  error: "tasks.error",
 } as const;
 
 export class TaskPublisher {
@@ -19,9 +19,9 @@ export class TaskPublisher {
   async taskError(evt: EventBase): Promise<void> {
     try {
       await this.messaging.publish(EVENT_ROUTES.error, evt);
-      console.log(`[TaskPublisher] Evento de erro publicado: ${evt.correlationId}`);
+      console.log(`[TaskPublisher] Evento de erro publicado: ${evt.CorrelationId}`);
     } catch (err) {
-      console.error(`[TaskPublisher] Falha ao publicar erro: ${evt.correlationId}`, err);
+      console.error(`[TaskPublisher] Falha ao publicar erro: ${evt.CorrelationId}`, err);
     }
   }
 }

@@ -1,16 +1,16 @@
 import { IMessengerProvider } from "../providers/messenger/IMessengerProvider";
 
 export interface EventBase<T = unknown> {
-  type: "category.error";
-  correlationId: string;
-  userId: string;
-  data?: T;
-  error?: { code: string; message: string };
-  occurredAt: string;
+  Type: "categories.error";
+  CorrelationId: string;
+  UserId: string;
+  Data?: T;
+  Error?: { code: string; message: string };
+  OccurredAt: string;
 }
 
 const EVENT_ROUTES = {
-  error: "category.error",
+  error: "categories.error",
 } as const;
 
 export class CategoryPublisher {
@@ -19,9 +19,9 @@ export class CategoryPublisher {
   async categoryError(evt: EventBase): Promise<void> {
     try {
       await this.messaging.publish(EVENT_ROUTES.error, evt);
-      console.log(`[CategoryPublisher] Evento de erro publicado: ${evt.correlationId}`);
+      console.log(`[CategoryPublisher] Evento de erro publicado: ${evt.CorrelationId}`);
     } catch (err) {
-      console.error(`[CategoryPublisher] Falha ao publicar erro: ${evt.correlationId}`, err);
+      console.error(`[CategoryPublisher] Falha ao publicar erro: ${evt.CorrelationId}`, err);
     }
   }
 }

@@ -4,12 +4,21 @@ import { CategoryRepositoryFactory } from "../repositories/CategoryRepositoryFac
 import { TaskRepositoryFactory } from "../repositories/TaskRepositoryFactory";
 import { CategoryService } from "../services/CategoryService";
 
-interface CreatePayload {
-  Name: string;
+interface Payload<T> {
+  Type: string;
+  Data: T;
+  CorrelationId: string;
+  OccurredAt: string;
 }
 
-interface DeletePayload {
-  CategoryId: number | string;
+interface CreateData {
+  Name: string;
+  UserId: string;
+}
+
+interface DeleteData {
+  CategoryId: number;
+  UserId: string;
 }
 
 export class CategoryConsumer {
@@ -23,24 +32,40 @@ export class CategoryConsumer {
 
     await messenger.consume(queueName, async (envelope: any) => {
       try {
-        const cmd = envelope?.message;
-        if (!cmd) return;
+        const cmd = envelope?.message as Payload<CreateData | DeleteData>;
+        if (!cmd) {
+          console.warn("[CategoryConsumer] Envelope sem mensagem:", envelope);
+          return;
+        }
 
-        const { type, userId, data } = cmd;
+        const type = cmd.Type;
+        const correlationId = cmd.CorrelationId ?? "unknown";
+
+        console.log(`[CategoryConsumer] Recebido: ${type} (cid=${correlationId}`);
+        console.log("[CategoryConsumer] Payload:", cmd.Data);
+
+        if (!type || !cmd.Data) {
+          throw new Error("Comando inválido");
+        }
 
         switch (type) {
           case "category.create": {
-            const payload = data as CreatePayload; 
+            const data = cmd.Data as CreateData;
             await service.createCategory({
-              userId, 
-              name: payload.Name
+              userId: data.UserId, 
+              name: data.Name
             });
+            console.log(`[CategoryConsumer] Categoria criada com sucesso (user=${data.UserId})`);
             break;
           }
 
           case "category.delete": {
-            const payload = data as DeletePayload;
-            await service.deleteCategory(userId, Number(payload.CategoryId));
+            const data = cmd.Data as DeleteData;
+            if (!data.CategoryId) {
+              throw new Error("Payload inválido para category.delete");
+            }
+            await service.deleteCategory(data.UserId, Number(data.CategoryId));
+            console.log(`[CategoryConsumer] Categoria ${data.CategoryId} removida (user=${data.UserId})`);
             break;
           }
 
@@ -53,17 +78,17 @@ export class CategoryConsumer {
         console.error(`[CategoryConsumer] Erro processando comando: ${message}`);
         try {
           await publisher.categoryError({
-            type: "category.error",
-            correlationId: err?.correlationId ?? "unknown",
-            userId: err?.userId ?? "unknown",
-            error: { code: "CATEGORY_ERROR", message },
-            occurredAt: new Date().toISOString(),
+            Type: "categories.error",
+            CorrelationId: err?.correlationId ?? "unknown",
+            UserId: err?.userId ?? "unknown",
+            Error: { code: "CATEGORY_ERROR", message },
+            OccurredAt: new Date().toISOString(),
           });
         } catch (pubErr) {
-          console.error("[CategoryConsumer] Falha ao publicar evento de erro:", pubErr);
+          console.error("[CategoryConsumer] Falha ao publicar evento de erro: ", pubErr);
         }
       }
     });
-    console.log(`[CategoryConsumer] Consumer inicializado: ${queueName}`);
+    console.log(`[CategoryConsumer] Consumer inicializado na fila ${queueName}`);
   }
 }

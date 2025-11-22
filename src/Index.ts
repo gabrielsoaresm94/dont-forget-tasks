@@ -1,4 +1,4 @@
-import app from "./app";
+import app from "./App";
 import { env } from "./config/env";
 import { TaskConsumer } from "./consumers/TaskConsumer";
 import { MessengerProviderFactory } from "./providers/messenger/MessengerProviderFactory";
