@@ -26,20 +26,7 @@ export class TaskService {
   }
 
   async listTasks(userId: string, categoryId?: number) {
-    const tasks = await this.taskRepository.findAll(userId, categoryId);
-    if (categoryId) {
-      return {
-        categoryId,
-        tasks
-      };
-    }
-    const grouped: Record<string, Task[]> = {};
-    for (const t of tasks) {
-      if (!grouped[t.CategoryId]) grouped[t.CategoryId] = [];
-      grouped[t.CategoryId].push(t);
-    }
-
-    return grouped;
+    return this.taskRepository.findAll(userId, categoryId);
   }
 
   async deleteTask(userId: string, taskId: number): Promise<void> {
