@@ -37,7 +37,7 @@ export class CategoryController {
     const send = createSender(res);
 
     try {
-      const userId = req.user?.userId;
+      const userId = req.user?.user_id;
       if (!userId) {
         return send.badRequest({}, { Message: "Todos os campos são obrigatórios" });
       }
@@ -59,7 +59,7 @@ export class CategoryController {
     const send = createSender(res);
 
     try {
-      const userId = req.user?.userId;
+      const userId = req.user?.user_id;
       const categoryId = parseRequiredNumber(req.params.id);
 
       if (!userId || categoryId === null) {
