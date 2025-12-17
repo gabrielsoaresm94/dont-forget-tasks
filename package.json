@@ -1,5 +1,5 @@
 {
-  "name": "ms-node",
+  "name": "dont-forget-tasks",
   "version": "1.0.0",
   "main": "build/index.js",
   "scripts": {

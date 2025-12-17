@@ -1,9 +1,9 @@
 version: '3.8'
 
 services:
-  ms-node:
+  dont-forget-tasks:
     build: .
-    container_name: ms-node
+    container_name: dont-forget-tasks
     depends_on:
       - rabbitmq
       - redis
