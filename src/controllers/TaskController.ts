@@ -49,7 +49,7 @@ export class TaskController {
     const send = createSender(res);
 
     try {
-      const userId = req.user?.user_id;
+      const userId = req.user?.userId;
       if (!userId) {
         return send.badRequest({}, { Message: "Campo para consulta é obrigatório" });
       }
@@ -73,7 +73,7 @@ export class TaskController {
     const send = createSender(res);
 
     try {
-      const userId = req.user?.user_id;
+      const userId = req.user?.userId;
       const taskId = parseRequiredNumber(req.params.id);
 
       if (!userId || taskId === null) {

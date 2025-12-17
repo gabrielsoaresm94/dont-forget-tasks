@@ -1,6 +1,6 @@
 import express from "express";
 import { json } from "body-parser";
-import { authenticateJwt } from "./Auth/AuthMiddleware";
+import { authenticateJwt } from "./auth/AuthMiddleware";
 import { TaskController } from "./controllers/TaskController";
 import { CategoryController } from "./controllers/CategoryController";
 import { createTaskRouter } from "./TasksRoutes";
