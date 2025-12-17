@@ -3,7 +3,7 @@ version: '3.8'
 services:
   dont-forget-tasks:
     build: .
-    container_name: dont-forget-tasks
+    # container_name: dont-forget-tasks
     depends_on:
       - rabbitmq
       - redis
@@ -20,7 +20,7 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: redis
+    # container_name: redis
     ports:
       - "6379:6379"
     volumes:
@@ -34,5 +34,6 @@ volumes:
 
 networks:
   app_network:
-    name: pocmsgateway_app_network
+    name: dontforgetgateway_app_network
+    # name: pocmsgateway_app_network
     external: true
